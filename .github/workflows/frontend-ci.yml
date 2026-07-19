@@ -27,7 +27,7 @@ jobs:
       run: npm install
 
     - name: Run Unit Tests (Jest)
-      run: npx jest
+      run: npm test
 
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps chromium
