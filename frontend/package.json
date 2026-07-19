@@ -8,6 +8,11 @@
   },
   "keywords": [],
   "type": "commonjs",
+  "jest": {
+    "testMatch": [
+      "**/js/**/*.test.js"
+    ]
+  },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
     "http-server": "^14.1.1",
