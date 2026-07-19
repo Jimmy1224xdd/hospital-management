@@ -14,9 +14,9 @@
  * @returns {string} - Fecha formateada
  */
 function formatDate(dateStr) {
-    // BUG INTENCIONAL: Si dateStr es null/undefined, new Date() retorna Invalid Date
-    // y todo el formateo falla sin aviso claro
+    if (!dateStr) return 'Fecha inválida';
     const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return 'Fecha inválida';
     return date.toLocaleDateString('es-EC', {
         year: 'numeric',
         month: 'long',
@@ -30,8 +30,9 @@ function formatDate(dateStr) {
  * @returns {string} - Fecha y hora formateada
  */
 function formatDateTime(dateStr) {
-    // BUG INTENCIONAL: no valida si dateStr es null
+    if (!dateStr) return 'Fecha y hora inválida';
     const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return 'Fecha y hora inválida';
     return date.toLocaleString('es-EC', {
         year: 'numeric',
         month: 'long',
@@ -48,14 +49,14 @@ function formatDateTime(dateStr) {
  */
 function escapeHTML(str) {
     if (!str) return '';
-    // BUG INTENCIONAL: Escape incompleto — no escapa comillas simples (')
-    // ni backticks (`), permitiendo ciertos ataques XSS
     return str
+        .toString()
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-    // Faltan: .replace(/'/g, '&#39;')  y  .replace(/`/g, '&#96;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/`/g, '&#96;');
 }
 
 /**
@@ -67,8 +68,8 @@ function showAlert(message, type = 'success') {
     const container = document.getElementById('alert-container');
     if (!container) return;
 
-    // BUG INTENCIONAL: usa innerHTML con el mensaje sin escaparlo (XSS)
-    container.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+    const safeMessage = escapeHTML(message);
+    container.innerHTML = `<div class="alert alert-${type}">${safeMessage}</div>`;
 
     // Auto-ocultar despues de 4 segundos
     setTimeout(() => {
@@ -83,9 +84,7 @@ function showAlert(message, type = 'success') {
  */
 function validateEmail(email) {
     if (!email) return false;
-    // BUG INTENCIONAL: regex incorrecta — acepta emails sin TLD
-    // como "usuario@dominio" y rechaza emails validos con +
-    const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{1,}$/;
+    const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     return regex.test(email);
 }
 
@@ -95,9 +94,7 @@ function validateEmail(email) {
  * @returns {boolean}
  */
 function validateTelefono(telefono) {
-    // BUG INTENCIONAL: solo acepta exactamente 10 digitos,
-    // pero no valida prefijos reales (09, 08, etc.)
-    const regex = /^\d{10}$/;
+    const regex = /^0[0-9]{9}$/;
     return regex.test(telefono);
 }
 
@@ -109,9 +106,22 @@ function validateTelefono(telefono) {
 function isFutureDate(dateStr) {
     const date = new Date(dateStr);
     const now = new Date();
-    // BUG INTENCIONAL: Comparacion sin ajuste de zona horaria
-    // Una fecha "hoy" puede ser rechazada dependiendo de la zona
+    now.setHours(0, 0, 0, 0);
+    date.setHours(0, 0, 0, 0);
     return date > now;
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        formatDate,
+        formatDateTime,
+        localToISO,
+        escapeHTML,
+        showAlert,
+        validateEmail,
+        validateTelefono,
+        isFutureDate
+    };
 }
 
 /**

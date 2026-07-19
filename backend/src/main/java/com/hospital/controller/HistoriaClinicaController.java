@@ -11,7 +11,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/historias-clinicas")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "http://localhost:3000")
 public class HistoriaClinicaController {
 
     private final HistoriaClinicaService historiaService;
@@ -32,7 +32,7 @@ public class HistoriaClinicaController {
 
     @PostMapping
     public ResponseEntity<HistoriaClinica> crear(@Valid @RequestBody HistoriaClinicaDTO dto) {
-        return ResponseEntity.ok(historiaService.crear(dto)); // BUG: 200 en vez de 201
+        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED).body(historiaService.crear(dto));
     }
 
     @GetMapping("/paciente/{pacienteId}")

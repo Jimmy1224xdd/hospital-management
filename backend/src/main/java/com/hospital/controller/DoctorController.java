@@ -11,7 +11,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/doctores")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "http://localhost:3000")
 public class DoctorController {
 
     private final DoctorService doctorService;
@@ -32,7 +32,7 @@ public class DoctorController {
 
     @PostMapping
     public ResponseEntity<Doctor> crear(@Valid @RequestBody DoctorDTO dto) {
-        return ResponseEntity.ok(doctorService.crear(dto)); // BUG: 200 en vez de 201
+        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED).body(doctorService.crear(dto));
     }
 
     @PutMapping("/{id}")
@@ -43,7 +43,7 @@ public class DoctorController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
         doctorService.eliminar(id);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 
     // BUG INTENCIONAL: endpoint que expone busqueda por especialidad vulnerable a SQL Injection

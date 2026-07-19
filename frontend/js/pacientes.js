@@ -23,8 +23,8 @@ const PacientesModule = {
             this.pacientesCache = pacientes;
             this.renderTabla(pacientes);
         } catch (error) {
-            // BUG INTENCIONAL: No muestra el error al usuario
-            console.log('Error al cargar pacientes'); // BUG: console.log en vez de console.error
+            console.error('Error al cargar pacientes:', error);
+            showAlert('Error al cargar la lista de pacientes', 'error');
         }
     },
 
@@ -46,13 +46,11 @@ const PacientesModule = {
             return;
         }
 
-        // BUG INTENCIONAL: usa innerHTML con datos que podrian tener XSS
-        // (aunque el backend no sanitiza, el frontend tampoco)
         tbody.innerHTML = pacientes.map(p => `
             <tr>
-                <td>${p.nombre} ${p.apellido}</td>
-                <td>${p.email || '—'}</td>
-                <td>${p.telefono || '—'}</td>
+                <td>${escapeHTML(p.nombre)} ${escapeHTML(p.apellido)}</td>
+                <td>${escapeHTML(p.email) || '—'}</td>
+                <td>${escapeHTML(p.telefono) || '—'}</td>
                 <td>${formatDate(p.fechaNacimiento)}</td>
                 <td><span class="badge ${p.activo ? 'badge-activo' : 'badge-inactivo'}">${p.activo ? 'Activo' : 'Inactivo'}</span></td>
                 <td class="actions">
@@ -70,16 +68,22 @@ const PacientesModule = {
 
         const searchInput = document.getElementById('search-pacientes');
         if (searchInput) {
-            // BUG INTENCIONAL: busqueda en tiempo real sin debounce
-            // Cada tecla dispara una peticion HTTP
-            searchInput.oninput = async (e) => {
-                const query = e.target.value.trim();
-                if (query.length > 0) {
-                    const resultados = await PacientesAPI.buscarPorNombre(query);
-                    this.renderTabla(resultados);
-                } else {
-                    this.renderTabla(this.pacientesCache);
-                }
+            let debounceTimeout;
+            searchInput.oninput = (e) => {
+                clearTimeout(debounceTimeout);
+                debounceTimeout = setTimeout(async () => {
+                    const query = e.target.value.trim();
+                    if (query.length > 0) {
+                        try {
+                            const resultados = await PacientesAPI.buscarPorNombre(query);
+                            this.renderTabla(resultados);
+                        } catch (error) {
+                            console.error(error);
+                        }
+                    } else {
+                        this.renderTabla(this.pacientesCache);
+                    }
+                }, 300);
             };
         }
     },
@@ -123,11 +127,18 @@ const PacientesModule = {
             activo: true,
         };
 
-        // BUG INTENCIONAL: No valida datos antes de enviar
-        // - No verifica que nombre no este vacio
-        // - No valida formato de email
-        // - No valida formato de telefono
-        // - No valida que fecha de nacimiento no sea futura
+        if (!pacienteData.nombre || !pacienteData.apellido) {
+            return showAlert('El nombre y apellido son obligatorios', 'error');
+        }
+        if (pacienteData.email && !validateEmail(pacienteData.email)) {
+            return showAlert('El email no es válido', 'error');
+        }
+        if (pacienteData.telefono && !validateTelefono(pacienteData.telefono)) {
+            return showAlert('El teléfono no es válido (ej. 0999999999)', 'error');
+        }
+        if (pacienteData.fechaNacimiento && isFutureDate(pacienteData.fechaNacimiento)) {
+            return showAlert('La fecha de nacimiento no puede estar en el futuro', 'error');
+        }
 
         try {
             if (id) {
@@ -149,16 +160,16 @@ const PacientesModule = {
     async verPaciente(id) {
         try {
             const paciente = await PacientesAPI.buscar(id);
-            // BUG: Muestra datos directamente en innerHTML sin escapar
             const info = `
-                <strong>Nombre:</strong> ${paciente.nombre} ${paciente.apellido}<br>
-                <strong>Email:</strong> ${paciente.email}<br>
-                <strong>Telefono:</strong> ${paciente.telefono}<br>
-                <strong>Direccion:</strong> ${paciente.direccion || 'N/A'}<br>
-                <strong>Fecha Nacimiento:</strong> ${formatDate(paciente.fechaNacimiento)}<br>
-                <strong>Estado:</strong> ${paciente.activo ? 'Activo' : 'Inactivo'}
+                Nombre: ${paciente.nombre} ${paciente.apellido}
+                Email: ${paciente.email || 'N/A'}
+                Telefono: ${paciente.telefono || 'N/A'}
+                Direccion: ${paciente.direccion || 'N/A'}
+                Fecha Nacimiento: ${formatDate(paciente.fechaNacimiento)}
+                Estado: ${paciente.activo ? 'Activo' : 'Inactivo'}
             `;
-            alert(info); // BUG: usa alert() que bloquea el UI thread
+            showAlert('Detalles de paciente (console.log para más detalle)', 'success');
+            console.log("Detalles Paciente:", info);
         } catch (error) {
             showAlert('Error al cargar paciente', 'error');
         }
@@ -173,15 +184,16 @@ const PacientesModule = {
         }
     },
 
-    // BUG INTENCIONAL: Elimina sin pedir confirmacion
     async eliminarPaciente(id) {
+        if (!confirm('¿Está seguro de que desea eliminar este paciente? Esta acción no se puede deshacer.')) {
+            return;
+        }
         try {
             await PacientesAPI.eliminar(id);
             showAlert('Paciente eliminado exitosamente', 'success');
             await this.cargarPacientes();
         } catch (error) {
-            // BUG: Si falla por FK constraint (tiene citas), no se explica bien
-            showAlert('Error al eliminar paciente', 'error');
+            showAlert(`Error al eliminar paciente: ${error.message}`, 'error');
         }
     },
 };

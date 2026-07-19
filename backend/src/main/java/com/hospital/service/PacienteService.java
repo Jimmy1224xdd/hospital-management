@@ -22,8 +22,9 @@ public class PacienteService {
     }
 
     public Paciente buscarPorId(Long id) {
-        // BUG INTENCIONAL: No maneja correctamente el caso de ID negativo
-        // Ademas, orElseThrow no esta importado/definido correctamente en el repository
+        if (id == null || id <= 0) {
+            throw new IllegalArgumentException("ID de paciente inválido");
+        }
         return pacienteRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Paciente no encontrado con ID: " + id));
     }
@@ -36,13 +37,12 @@ public class PacienteService {
 
     public Paciente actualizar(Long id, PacienteDTO dto) {
         Paciente paciente = buscarPorId(id);
-        // BUG INTENCIONAL: actualiza todos los campos sin validar si vienen nulos
-        paciente.setNombre(dto.getNombre());
-        paciente.setApellido(dto.getApellido());
-        paciente.setFechaNacimiento(dto.getFechaNacimiento());
-        paciente.setEmail(dto.getEmail());
-        paciente.setTelefono(dto.getTelefono());
-        paciente.setDireccion(dto.getDireccion());
+        if (dto.getNombre() != null) paciente.setNombre(dto.getNombre());
+        if (dto.getApellido() != null) paciente.setApellido(dto.getApellido());
+        if (dto.getFechaNacimiento() != null) paciente.setFechaNacimiento(dto.getFechaNacimiento());
+        if (dto.getEmail() != null) paciente.setEmail(dto.getEmail());
+        if (dto.getTelefono() != null) paciente.setTelefono(dto.getTelefono());
+        if (dto.getDireccion() != null) paciente.setDireccion(dto.getDireccion());
         if (dto.getActivo() != null) {
             paciente.setActivo(dto.getActivo());
         }
@@ -70,14 +70,16 @@ public class PacienteService {
 
     public double calcularEdadPromedio() {
         List<Paciente> pacientes = pacienteRepository.findAll();
-        // BUG INTENCIONAL: division por cero si no hay pacientes
+        if (pacientes.isEmpty()) {
+            return 0.0;
+        }
         long suma = 0;
         for (Paciente p : pacientes) {
             if (p.getFechaNacimiento() != null) {
                 suma += java.time.Period.between(p.getFechaNacimiento(), java.time.LocalDate.now()).getYears();
             }
         }
-        return (double) suma / pacientes.size(); // BUG: division by zero si lista vacia
+        return (double) suma / pacientes.size();
     }
 
     private Paciente toEntity(PacienteDTO dto) {

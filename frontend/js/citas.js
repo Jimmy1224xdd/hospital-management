@@ -59,10 +59,10 @@ const CitasModule = {
 
             return `
                 <tr>
-                    <td>Paciente #${c.pacienteId}</td>
-                    <td>${doctorNombre}</td>
+                    <td>Paciente #${c.paciente?.id || c.pacienteId}</td>
+                    <td>${escapeHTML(doctorNombre)}</td>
                     <td>${formatDateTime(c.fechaHora)}</td>
-                    <td>${c.motivo || '—'}</td>
+                    <td>${escapeHTML(c.motivo) || '—'}</td>
                     <td><span class="badge badge-${(c.estado || '').toLowerCase()}">${c.estado}</span></td>
                     <td class="actions">
                         <button class="btn-edit" onclick="CitasModule.editarCita(${c.id})">Editar</button>
@@ -100,9 +100,10 @@ const CitasModule = {
         // Llenar selects
         const selectDoctor = document.getElementById('cita-doctor');
         selectDoctor.innerHTML = '<option value="">Seleccione un doctor</option>' +
-            this.doctoresCache.map(d =>
-                `<option value="${d.id}">${d.nombre} ${d.apellido} (${d.especialidad || 'Sin esp.'})</option>`
-            ).join('');
+            this.doctoresCache
+                .filter(d => d.especialidad)
+                .map(d => `<option value="${d.id}">${escapeHTML(d.nombre)} ${escapeHTML(d.apellido)} (${escapeHTML(d.especialidad)})</option>`)
+                .join('');
 
         const selectPaciente = document.getElementById('cita-paciente');
         selectPaciente.innerHTML = '<option value="">Seleccione un paciente</option>' +
@@ -147,9 +148,28 @@ const CitasModule = {
             estado: document.getElementById('cita-estado').value || 'PROGRAMADA',
         };
 
-        // BUG: No verifica conflicto de horarios (doble booking)
-        // BUG: No valida que pacienteId y doctorId sean validos
-        // BUG: No valida que la fecha sea futura
+        if (!citaData.pacienteId || isNaN(citaData.pacienteId)) {
+            return showAlert('Debe seleccionar un paciente válido', 'error');
+        }
+        if (!citaData.doctorId || isNaN(citaData.doctorId)) {
+            return showAlert('Debe seleccionar un doctor válido', 'error');
+        }
+        if (!fechaLocal) {
+            return showAlert('Debe especificar la fecha y hora', 'error');
+        }
+        if (!isFutureDate(fechaLocal)) {
+            return showAlert('La fecha de la cita debe ser en el futuro', 'error');
+        }
+        
+        // Validacion de doble booking en frontend
+        const conflicto = this.citasCache.some(c => 
+            c.doctor?.id === citaData.doctorId && 
+            new Date(c.fechaHora).getTime() === new Date(citaData.fechaHora).getTime() && 
+            c.id !== parseInt(id)
+        );
+        if (conflicto) {
+            return showAlert('El doctor ya tiene una cita en ese horario', 'error');
+        }
 
         try {
             if (id) {

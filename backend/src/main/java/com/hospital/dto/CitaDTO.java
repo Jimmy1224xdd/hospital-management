@@ -1,6 +1,6 @@
 package com.hospital.dto;
 
-import jakarta.validation.constraints.Future;
+import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 
@@ -14,9 +14,8 @@ public class CitaDTO {
     @NotNull(message = "El ID del doctor es obligatorio")
     private Long doctorId;
 
-    // BUG INTENCIONAL: @Future impide crear citas con fecha actual (deberia ser @FutureOrPresent)
     @NotNull(message = "La fecha y hora es obligatoria")
-    @Future(message = "La fecha debe ser futura")
+    @FutureOrPresent(message = "La fecha debe ser futura o actual")
     private LocalDateTime fechaHora;
 
     private String motivo;

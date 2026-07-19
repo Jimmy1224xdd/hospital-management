@@ -13,7 +13,7 @@ public class DoctorDTO {
     @NotBlank(message = "El apellido es obligatorio")
     private String apellido;
 
-    // BUG INTENCIONAL: especialidad no tiene @NotBlank aunque en la logica de negocio es requerida
+    @NotBlank(message = "La especialidad es obligatoria")
     private String especialidad;
 
     @Email(message = "El email debe ser valido")

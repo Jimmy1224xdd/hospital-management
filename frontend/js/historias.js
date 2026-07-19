@@ -51,12 +51,11 @@ const HistoriasModule = {
         }
 
         tbody.innerHTML = historias.map(h => {
-            // BUG: Acceso a propiedades anidadas sin verificacion de null
             const pacienteNombre = h.paciente
-                ? `${h.paciente.nombre} ${h.paciente.apellido}`
+                ? `${escapeHTML(h.paciente.nombre)} ${escapeHTML(h.paciente.apellido)}`
                 : 'N/A';
             const doctorNombre = h.doctor
-                ? `${h.doctor.nombre} ${h.doctor.apellido}`
+                ? `${escapeHTML(h.doctor.nombre)} ${escapeHTML(h.doctor.apellido)}`
                 : 'N/A';
 
             return `
@@ -64,8 +63,7 @@ const HistoriasModule = {
                     <td>${pacienteNombre}</td>
                     <td>${doctorNombre}</td>
                     <td>${formatDateTime(h.fechaCreacion)}</td>
-                    <!-- BUG INTENCIONAL: diagnostico puede contener HTML/scripts (XSS) -->
-                    <td>${h.diagnostico}</td>
+                    <td>${escapeHTML(h.diagnostico)}</td>
                     <td class="actions">
                         <button class="btn-view" onclick="HistoriasModule.verHistoria(${h.id})">Ver</button>
                     </td>
@@ -118,9 +116,12 @@ const HistoriasModule = {
             observaciones: document.getElementById('historia-observaciones').value,
         };
 
-        // BUG INTENCIONAL: No sanitiza el diagnostico, permitiendo XSS almacenado
-        // Un usuario malicioso puede ingresar: <script>alert('XSS')</script>
-        // como diagnostico y se ejecutara al renderizar
+        if (!historiaData.pacienteId || isNaN(historiaData.pacienteId)) {
+            return showAlert('El paciente es obligatorio', 'error');
+        }
+        if (!historiaData.diagnostico || historiaData.diagnostico.trim() === '') {
+            return showAlert('El diagnóstico es obligatorio', 'error');
+        }
 
         try {
             await HistoriasAPI.crear(historiaData);
@@ -135,15 +136,14 @@ const HistoriasModule = {
     async verHistoria(id) {
         try {
             const h = await HistoriasAPI.buscar(id);
-            // BUG INTENCIONAL: innerHTML con datos del backend sin sanitizar (XSS)
             const detalle = `
                 <div style="text-align:left">
-                    <p><strong>Paciente:</strong> ${h.paciente?.nombre || 'N/A'} ${h.paciente?.apellido || ''}</p>
-                    <p><strong>Doctor:</strong> ${h.doctor?.nombre || 'N/A'} ${h.doctor?.apellido || ''}</p>
+                    <p><strong>Paciente:</strong> ${escapeHTML(h.paciente?.nombre) || 'N/A'} ${escapeHTML(h.paciente?.apellido) || ''}</p>
+                    <p><strong>Doctor:</strong> ${escapeHTML(h.doctor?.nombre) || 'N/A'} ${escapeHTML(h.doctor?.apellido) || ''}</p>
                     <p><strong>Fecha:</strong> ${formatDateTime(h.fechaCreacion)}</p>
-                    <p><strong>Diagnostico:</strong> ${h.diagnostico}</p>
-                    <p><strong>Tratamiento:</strong> ${h.tratamiento || 'No especificado'}</p>
-                    <p><strong>Observaciones:</strong> ${h.observaciones || 'Ninguna'}</p>
+                    <p><strong>Diagnostico:</strong> ${escapeHTML(h.diagnostico)}</p>
+                    <p><strong>Tratamiento:</strong> ${escapeHTML(h.tratamiento) || 'No especificado'}</p>
+                    <p><strong>Observaciones:</strong> ${escapeHTML(h.observaciones) || 'Ninguna'}</p>
                 </div>
             `;
 

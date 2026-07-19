@@ -52,11 +52,10 @@ public class DoctorService {
         doctorRepository.deleteById(id);
     }
 
-    // BUG INTENCIONAL: SQL Injection — construye query concatenando strings
-    // Esta es una vulnerabilidad real de inyeccion SQL
     public List<Doctor> buscarPorEspecialidadInsegura(String especialidad) {
-        String sql = "SELECT * FROM doctores WHERE especialidad ILIKE '%" + especialidad + "%'";
+        String sql = "SELECT * FROM doctores WHERE especialidad ILIKE :especialidad";
         jakarta.persistence.Query query = entityManager.createNativeQuery(sql, Doctor.class);
+        query.setParameter("especialidad", "%" + especialidad + "%");
         return query.getResultList();
     }
 

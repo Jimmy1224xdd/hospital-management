@@ -11,10 +11,9 @@ public class Cita {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // BUG INTENCIONAL: relacion sin @ManyToOne con FK explícita
-    // Solo se mapea como columna, permitiendo IDs de pacientes inexistentes
-    @Column(name = "paciente_id", nullable = false)
-    private Long pacienteId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "paciente_id", nullable = false)
+    private Paciente paciente;
 
     // Esta si tiene la relacion correcta
     @ManyToOne(fetch = FetchType.LAZY)
@@ -32,9 +31,9 @@ public class Cita {
 
     public Cita() {}
 
-    public Cita(Long pacienteId, Doctor doctor, LocalDateTime fechaHora,
+    public Cita(Paciente paciente, Doctor doctor, LocalDateTime fechaHora,
                 String motivo, String estado) {
-        this.pacienteId = pacienteId;
+        this.paciente = paciente;
         this.doctor = doctor;
         this.fechaHora = fechaHora;
         this.motivo = motivo;
@@ -45,8 +44,8 @@ public class Cita {
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
-    public Long getPacienteId() { return pacienteId; }
-    public void setPacienteId(Long pacienteId) { this.pacienteId = pacienteId; }
+    public Paciente getPaciente() { return paciente; }
+    public void setPaciente(Paciente paciente) { this.paciente = paciente; }
 
     public Doctor getDoctor() { return doctor; }
     public void setDoctor(Doctor doctor) { this.doctor = doctor; }

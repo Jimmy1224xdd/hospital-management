@@ -12,17 +12,20 @@ import java.util.List;
 @Repository
 public interface CitaRepository extends JpaRepository<Cita, Long> {
 
-    List<Cita> findByPacienteId(Long pacienteId);
+    @Query("SELECT c FROM Cita c JOIN FETCH c.doctor JOIN FETCH c.paciente WHERE c.paciente.id = :pacienteId")
+    List<Cita> findByPacienteId(@Param("pacienteId") Long pacienteId);
 
-    List<Cita> findByDoctorId(Long doctorId);
+    @Query("SELECT c FROM Cita c JOIN FETCH c.doctor JOIN FETCH c.paciente WHERE c.doctor.id = :doctorId")
+    List<Cita> findByDoctorId(@Param("doctorId") Long doctorId);
 
-    List<Cita> findByEstado(String estado);
+    @Query("SELECT c FROM Cita c JOIN FETCH c.doctor JOIN FETCH c.paciente WHERE c.estado = :estado")
+    List<Cita> findByEstado(@Param("estado") String estado);
 
-    // BUG INTENCIONAL: N+1 query — no usa JOIN FETCH para cargar el doctor
-    // Cuando se llame desde el servicio, cada cita hara una consulta separada para doctor
-    List<Cita> findByFechaHoraBetween(LocalDateTime inicio, LocalDateTime fin);
+    @Query("SELECT c FROM Cita c JOIN FETCH c.doctor JOIN FETCH c.paciente WHERE c.fechaHora BETWEEN :inicio AND :fin")
+    List<Cita> findByFechaHoraBetween(@Param("inicio") LocalDateTime inicio, @Param("fin") LocalDateTime fin);
 
-    // BUG: esta query JPQL hace join implicito pero sin FETCH, generando N+1
-    @Query("SELECT c FROM Cita c WHERE c.estado = :estado ORDER BY c.fechaHora")
+    @Query("SELECT c FROM Cita c JOIN FETCH c.doctor JOIN FETCH c.paciente WHERE c.estado = :estado ORDER BY c.fechaHora")
     List<Cita> findCitasByEstadoOrdered(@Param("estado") String estado);
+
+    boolean existsByDoctorIdAndFechaHora(Long doctorId, LocalDateTime fechaHora);
 }

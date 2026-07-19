@@ -12,7 +12,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/citas")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "http://localhost:3000")
 public class CitaController {
 
     private final CitaService citaService;
@@ -33,7 +33,7 @@ public class CitaController {
 
     @PostMapping
     public ResponseEntity<Cita> crear(@Valid @RequestBody CitaDTO dto) {
-        return ResponseEntity.ok(citaService.crear(dto)); // BUG: 200 en vez de 201
+        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED).body(citaService.crear(dto));
     }
 
     @PutMapping("/{id}")
@@ -44,7 +44,7 @@ public class CitaController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
         citaService.eliminar(id);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/paciente/{pacienteId}")

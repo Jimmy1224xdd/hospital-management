@@ -27,7 +27,7 @@ CREATE TABLE doctores (
     id BIGSERIAL PRIMARY KEY,
     nombre VARCHAR(100) NOT NULL,
     apellido VARCHAR(100) NOT NULL,
-    especialidad VARCHAR(100),       -- BUG: deberia ser NOT NULL
+    especialidad VARCHAR(100) NOT NULL,
     email VARCHAR(150),
     telefono VARCHAR(20),
     consultorio VARCHAR(50)
@@ -36,12 +36,12 @@ CREATE TABLE doctores (
 -- Tabla: citas
 CREATE TABLE citas (
     id BIGSERIAL PRIMARY KEY,
-    paciente_id BIGINT NOT NULL,     -- BUG: falta FOREIGN KEY REFERENCES pacientes(id)
+    paciente_id BIGINT NOT NULL,
     doctor_id BIGINT NOT NULL,
     fecha_hora TIMESTAMP NOT NULL,
     motivo VARCHAR(255),
     estado VARCHAR(20) DEFAULT 'PROGRAMADA',
-    -- Solo doctor_id tiene FK, paciente_id NO (intencional)
+    CONSTRAINT fk_citas_paciente FOREIGN KEY (paciente_id) REFERENCES pacientes(id),
     CONSTRAINT fk_citas_doctor FOREIGN KEY (doctor_id) REFERENCES doctores(id)
 );
 

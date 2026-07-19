@@ -34,10 +34,10 @@ const DoctoresModule = {
 
         tbody.innerHTML = doctores.map(d => `
             <tr>
-                <td>${d.nombre} ${d.apellido}</td>
-                <td>${d.especialidad || '<em>Sin especialidad</em>'}</td>
-                <td>${d.email || '—'}</td>
-                <td>${d.consultorio || '—'}</td>
+                <td>${escapeHTML(d.nombre)} ${escapeHTML(d.apellido)}</td>
+                <td>${escapeHTML(d.especialidad) || '<em>Sin especialidad</em>'}</td>
+                <td>${escapeHTML(d.email) || '—'}</td>
+                <td>${escapeHTML(d.consultorio) || '—'}</td>
                 <td class="actions">
                     <button class="btn-edit" onclick="DoctoresModule.editarDoctor(${d.id})">Editar</button>
                     <button class="btn-delete" onclick="DoctoresModule.eliminarDoctor(${d.id})">Eliminar</button>
@@ -52,16 +52,22 @@ const DoctoresModule = {
 
         const searchInput = document.getElementById('search-doctores');
         if (searchInput) {
-            // BUG: busqueda sin debounce, igual que pacientes
-            searchInput.oninput = async (e) => {
-                const query = e.target.value.trim();
-                if (query.length > 0) {
-                    // BUG: usa el endpoint vulnerable a SQLi sin advertir al usuario
-                    const resultados = await DoctoresAPI.buscarPorEspecialidad(query);
-                    this.renderTabla(resultados);
-                } else {
-                    this.renderTabla(this.doctoresCache);
-                }
+            let debounceTimeout;
+            searchInput.oninput = (e) => {
+                clearTimeout(debounceTimeout);
+                debounceTimeout = setTimeout(async () => {
+                    const query = e.target.value.trim();
+                    if (query.length > 0) {
+                        try {
+                            const resultados = await DoctoresAPI.buscarPorEspecialidad(query);
+                            this.renderTabla(resultados);
+                        } catch (error) {
+                            console.error(error);
+                        }
+                    } else {
+                        this.renderTabla(this.doctoresCache);
+                    }
+                }, 300);
             };
         }
     },
@@ -104,9 +110,15 @@ const DoctoresModule = {
             consultorio: document.getElementById('doctor-consultorio').value,
         };
 
-        // BUG: No valida especialidad (puede guardar vacio)
-        // BUG: No valida email
-        // BUG: No valida nombre/apellido no vacios
+        if (!doctorData.nombre || !doctorData.apellido) {
+            return showAlert('El nombre y apellido son obligatorios', 'error');
+        }
+        if (!doctorData.especialidad) {
+            return showAlert('La especialidad es obligatoria', 'error');
+        }
+        if (doctorData.email && typeof validateEmail === 'function' && !validateEmail(doctorData.email)) {
+            return showAlert('El email no es válido', 'error');
+        }
 
         try {
             if (id) {
@@ -133,13 +145,15 @@ const DoctoresModule = {
     },
 
     async eliminarDoctor(id) {
-        // BUG: no pide confirmacion, elimina directo
+        if (!confirm('¿Está seguro de que desea eliminar este doctor?')) {
+            return;
+        }
         try {
             await DoctoresAPI.eliminar(id);
             showAlert('Doctor eliminado exitosamente', 'success');
             await this.cargarDoctores();
         } catch (error) {
-            showAlert('Error al eliminar doctor', 'error');
+            showAlert('Error al eliminar doctor: ' + error.message, 'error');
         }
     },
 };

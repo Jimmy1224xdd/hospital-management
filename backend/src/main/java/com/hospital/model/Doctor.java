@@ -16,8 +16,7 @@ public class Doctor {
     @Column(nullable = false, length = 100)
     private String apellido;
 
-    // BUG INTENCIONAL: especialidad no tiene @Column(nullable = false) ni validacion
-    @Column(length = 100)
+    @Column(nullable = false, length = 100)
     private String especialidad;
 
     @Column(length = 150)

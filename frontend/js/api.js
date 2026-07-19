@@ -19,23 +19,39 @@ const API_BASE = 'http://localhost:8080/api';
 async function apiFetch(endpoint, options = {}) {
     const url = `${API_BASE}${endpoint}`;
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
     const config = {
         headers: {
             'Content-Type': 'application/json',
             ...options.headers,
         },
         ...options,
+        signal: controller.signal
     };
 
-    // BUG INTENCIONAL: Sin timeout — una peticion puede quedarse colgada
-    const response = await fetch(url, config);
+    try {
+        const response = await fetch(url, config);
+        clearTimeout(timeoutId);
 
-    // BUG INTENCIONAL: No maneja response.ok = false consistentemente
-    // Para DELETE, intenta parsear JSON aunque el body este vacio
-    const data = await response.json();
+        if (!response.ok) {
+            let errorMsg = 'Error en la petición';
+            try {
+                const errorData = await response.json();
+                errorMsg = errorData.message || errorMsg;
+            } catch (e) {}
+            throw new Error(errorMsg);
+        }
 
-    // BUG: si !response.ok, deberia lanzar error pero solo retorna data
-    return data;
+        if (response.status === 204) {
+            return null;
+        }
+
+        return await response.json();
+    } catch (error) {
+        throw error;
+    }
 }
 
 // ================== PACIENTES ==================
@@ -144,3 +160,14 @@ const HistoriasAPI = {
 
     porDoctor: (doctorId) => apiFetch(`/historias-clinicas/doctor/${doctorId}`),
 };
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        API_BASE,
+        apiFetch,
+        PacientesAPI,
+        DoctoresAPI,
+        CitasAPI,
+        HistoriasAPI
+    };
+}

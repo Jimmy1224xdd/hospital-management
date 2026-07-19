@@ -11,7 +11,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/pacientes")
-@CrossOrigin(origins = "*")  // BUG INTENCIONAL: CORS demasiado permisivo (OWASP)
+@CrossOrigin(origins = "http://localhost:3000")
 public class PacienteController {
 
     private final PacienteService pacienteService;
@@ -33,8 +33,7 @@ public class PacienteController {
     @PostMapping
     public ResponseEntity<Paciente> crear(@Valid @RequestBody PacienteDTO dto) {
         Paciente creado = pacienteService.crear(dto);
-        // BUG INTENCIONAL: retorna 200 OK en vez de 201 Created
-        return ResponseEntity.ok(creado);
+        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED).body(creado);
     }
 
     @PutMapping("/{id}")
@@ -45,8 +44,7 @@ public class PacienteController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
         pacienteService.eliminar(id);
-        // BUG INTENCIONAL: no retorna 204 No Content, retorna 200 OK
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/buscar")
